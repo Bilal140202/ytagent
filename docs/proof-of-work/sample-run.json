@@ -1,0 +1,30 @@
+{
+  "ok": true,
+  "video_id": "dQw4w9WgXcQ",
+  "final_path": "/home/z/my-project/ytdl-agent/downloads/proof/dQw4w9WgXcQ.mp4",
+  "method_used": "ytdlp_default",
+  "total_duration_ms": 6350,
+  "trace_id": "9d58bb45f959",
+  "attempts": [
+    {
+      "method": "transcript_probe",
+      "started_at": "2026-07-29T23:13:45.772Z",
+      "finished_at": "2026-07-29T23:13:46.510Z",
+      "ok": true,
+      "reason": "reachable",
+      "verify_reason": null,
+      "bytes_downloaded": 0,
+      "duration_ms": 738
+    },
+    {
+      "method": "ytdlp_default",
+      "started_at": "2026-07-29T23:13:46.511Z",
+      "finished_at": "2026-07-29T23:13:52.117Z",
+      "ok": true,
+      "reason": null,
+      "verify_reason": null,
+      "bytes_downloaded": 243743156,
+      "duration_ms": 5543
+    }
+  ]
+}

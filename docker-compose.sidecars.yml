@@ -1,0 +1,43 @@
+# docker-compose.sidecars.yml — optional escape hatches for when YouTube tightens.
+#
+# These are NOT required for ytagent to work. The BGutil POT provider runs
+# fine in script-node mode (spawning `node` per call). These sidecars make
+# it faster (cached tokens) and add Cloudflare WARP (IP anonymization) and
+# Cobalt (alternative download API) for maximum resilience.
+#
+# Usage:
+#   docker compose -f docker-compose.sidecars.yml up -d
+#   ytagent download <url> --proxy http://127.0.0.1:3128
+
+services:
+  bgutil-pot:
+    image: brainicism/bgutil-ytdlp-pot-provider:latest
+    init: true
+    ports:
+      - "127.0.0.1:4416:4416"
+    restart: unless-stopped
+
+  warp-proxy:
+    # Cloudflare WARP — routes YouTube requests through Cloudflare's
+    # residential-ish IP ranges, bypassing datacenter IP blocks.
+    image: monius/docker-cloudflare-warp
+    cap_add:
+      - NET_ADMIN
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+    ports:
+      - "127.0.0.1:1080:1080"   # SOCKS5
+      - "127.0.0.1:3128:3128"   # HTTP
+    restart: unless-stopped
+    environment:
+      - WARP_LICENSE_KEY=         # leave blank for free tier
+
+  cobalt:
+    # Alternative download API — useful when yt-dlp's extractor is broken.
+    image: ghcr.io/imputnet/cobalt:latest
+    init: true
+    ports:
+      - "127.0.0.1:9000:9000"
+    restart: unless-stopped
+    environment:
+      - API_URL=http://127.0.0.1:9000
