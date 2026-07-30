@@ -20,6 +20,7 @@ from . import __version__, log
 from .agents.tester import Tester
 from .agents.truth import TruthAgent
 from .agents.verifier import Verifier
+from .bootstrap import bgutil_status, ensure_bgutil_ready, stop_server
 from .methods import METHOD_REGISTRY, list_methods
 from .methods.base import default_opts
 from .orchestrator import Orchestrator
@@ -166,6 +167,52 @@ def list_methods_cmd() -> None:
     """List all registered download methods."""
     for name in list_methods():
         click.echo(name)
+
+
+@cli.command(name="setup")
+@click.option("--status", "show_status", is_flag=True, help="Print BGutil status and exit.")
+@click.option("--stop", is_flag=True, help="Stop the auto-started BGutil server.")
+@click.option("--no-install", is_flag=True, help="Skip cloning/installing if missing.")
+@click.option("--no-start", is_flag=True, help="Skip starting the HTTP server.")
+def setup_cmd(show_status: bool, stop: bool, no_install: bool, no_start: bool) -> None:
+    """One-command setup: clone, compile, and start the BGutil POT provider.
+
+    This is what makes `ytagent download <url>` Just Work on a fresh machine.
+    Safe to re-run; skips steps that are already done.
+    """
+    if show_status:
+        s = bgutil_status()
+        if _RICH:
+            table = Table(title="BGutil POT provider status")
+            table.add_column("Check")
+            table.add_column("Value")
+            for k, v in s.items():
+                table.add_row(k, str(v))
+            _console.print(table)
+        else:
+            for k, v in s.items():
+                click.echo(f"  {k}: {v}")
+        sys.exit(0 if s["ready"] else 1)
+
+    if stop:
+        ok = stop_server()
+        click.echo("stopped" if ok else "no auto-started server found")
+        return
+
+    click.echo("Setting up BGutil POT provider...")
+    ok = ensure_bgutil_ready(
+        auto_install=not no_install,
+        auto_start=not no_start,
+    )
+    if ok:
+        click.echo("\n✅ BGutil POT provider is ready.")
+        click.echo("   HTTP server running on http://127.0.0.1:4416")
+        click.echo("\nYou can now download videos:")
+        click.echo('  ytagent download "https://www.youtube.com/watch?v=..."')
+        sys.exit(0)
+    else:
+        click.echo("\n❌ Setup incomplete. Run `ytagent setup --status` to diagnose.")
+        sys.exit(1)
 
 
 def main() -> None:

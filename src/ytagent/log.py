@@ -38,7 +38,11 @@ def _now_iso() -> str:
 
 
 def _emit(level: str, msg: str, trace_id: str | None, fields: dict[str, Any]) -> None:
-    """Emit one structured log line. JSONL to stderr, rich summary to stdout."""
+    """Emit one structured log line. JSONL to stderr, rich summary to stderr too.
+
+    Both streams go to stderr so stdout is reserved for machine-readable
+    output (e.g. `ytagent download --json`).
+    """
     record = {
         "ts": _now_iso(),
         "level": level,
@@ -66,7 +70,7 @@ def _emit(level: str, msg: str, trace_id: str | None, fields: dict[str, Any]) ->
                     bits = [f"{k}={v}" for k, v in fields.items() if k != "skill"]
                     if bits:
                         extra = "  " + " ".join(bits[:4])
-                _console.print(f"[{style}][{level}][/{style}] {msg}[dim]{extra}[/dim]")
+                _console.print(f"[{style}][{level}][/{style}] {msg}[dim]{extra}[/dim]", file=sys.stderr)
             except Exception:
                 pass
 
@@ -107,11 +111,11 @@ def debug(msg: str, *, trace_id: str | None = None, **fields: Any) -> None:
 
 
 def panel(text: str, *, title: str = "", style: str = "cyan") -> None:
-    """Print a rich panel to stdout (human-facing summary only)."""
+    """Print a rich panel to stderr (human-facing summary; stdout reserved for JSON)."""
     if _console is None:
-        print(f"--- {title} ---\n{text}\n--- end ---")
+        sys.stderr.write(f"--- {title} ---\n{text}\n--- end ---\n")
         return
-    _console.print(Panel(text, title=title, border_style=style))
+    _console.print(Panel(text, title=title, border_style=style), file=sys.stderr)
 
 
 def write_jsonl(path: Path, record: dict[str, Any]) -> None:

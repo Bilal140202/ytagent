@@ -24,27 +24,35 @@ from typing import Any
 # --- Auto-load the BGutil POT provider plugin ---
 # yt_dlp reads YTDLP_PLUGIN_DIRS at import time. We set it before any
 # `import yt_dlp` happens anywhere in the process.
+#
+# The bgutil-ytdlp-pot-provider pip package installs yt_dlp_plugins/extractor/
+# files (getpot_bgutil.py, getpot_bgutil_http.py, getpot_bgutil_script.py)
+# into the same site-packages as yt_dlp itself. yt_dlp auto-discovers these
+# WITHOUT needing YTDLP_PLUGIN_DIRS — but only if they're in the same
+# site-packages. We set YTDLP_PLUGIN_DIRS as a belt-and-suspenders for cases
+# where the install location differs.
 
 _BGUTIL_SERVER_PATH = Path("/home/z/bgutil-ytdlp-pot-provider/server")
 _PLUGIN_DIRS = []
 
-# The bgutil-ytdlp-pot-provider pip package installs a yt_dlp_plugins dir.
-# Find it and add to YTDLP_PLUGIN_DIRS.
-try:
-    import bgutil_ytdlp_pot_provider as _bgutil_pkg
-    _pkg_dir = Path(_bgutil_pkg.__file__).parent
-    # The plugin entry point is typically in a yt_dlp_plugins subdir.
-    for candidate in [_pkg_dir / "yt_dlp_plugins", _pkg_dir.parent / "yt_dlp_plugins"]:
-        if candidate.exists():
-            _PLUGIN_DIRS.append(str(candidate))
-            break
-except ImportError:
-    pass
+# Find yt_dlp_plugins directories across all known site-packages locations.
+import sys
+for sp in sys.path:
+    if not sp or "site-packages" not in sp:
+        continue
+    candidate = Path(sp) / "yt_dlp_plugins"
+    if candidate.exists() and str(candidate) not in _PLUGIN_DIRS:
+        _PLUGIN_DIRS.append(str(candidate))
 
-# Also add the venv's yt_dlp_plugins dir if present.
-_venv_plugins = Path("/home/z/.venv/lib/python3.12/site-packages/yt_dlp_plugins")
-if _venv_plugins.exists():
-    _PLUGIN_DIRS.append(str(_venv_plugins))
+# Also check common venv locations.
+for venv_path in [
+    "/home/z/.venv/lib/python3.12/site-packages/yt_dlp_plugins",
+    "/home/z/.local/lib/python3.13/site-packages/yt_dlp_plugins",
+    "/home/z/.local/lib/python3.12/site-packages/yt_dlp_plugins",
+]:
+    p = Path(venv_path)
+    if p.exists() and str(p) not in _PLUGIN_DIRS:
+        _PLUGIN_DIRS.append(str(p))
 
 # Set the env var if we found any plugin dirs.
 if _PLUGIN_DIRS:
@@ -93,12 +101,26 @@ BASE_OPTS: dict[str, Any] = {
 
 
 def bgutil_http_server_running() -> bool:
-    """Check if the BGutil HTTP server is reachable on 127.0.0.1:4416."""
+    """Check if the BGutil HTTP server is reachable on 127.0.0.1:4416.
+
+    If not running, auto-bootstrap it (clone, npm install, compile, start).
+    This makes `ytagent download <url>` Just Work on a fresh machine.
+    """
     import requests
     try:
         r = requests.get("http://127.0.0.1:4416/ping", timeout=2)
-        return r.status_code == 200
+        if r.status_code == 200:
+            return True
     except Exception:
+        pass
+    # Auto-bootstrap. Imported lazily to avoid circular import.
+    try:
+        from ..bootstrap import ensure_bgutil_ready
+        return ensure_bgutil_ready(auto_install=True, auto_start=True)
+    except Exception as e:
+        import os
+        if os.environ.get("YTAGENT_DEBUG"):
+            print(f"[ytagent] auto-bootstrap failed: {e}")
         return False
 
 

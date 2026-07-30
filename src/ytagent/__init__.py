@@ -4,5 +4,5 @@ See CLAUDE.md for the master orientation. See agents.md for role prompts.
 See skills.md for the skill inventory. See phases.md for the build plan.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = ["__version__"]

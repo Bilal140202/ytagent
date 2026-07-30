@@ -60,3 +60,8 @@ Thumbs.db
 # Temp
 tmp/
 .tmp/
+
+# Build artifacts
+dist/
+*.egg-info/
+build/
