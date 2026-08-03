@@ -24,6 +24,11 @@ from ..state import now_iso
 
 # The static baseline chain from CLAUDE.md §4. Used when truth.json
 # does not exist yet, or as a fallback if the file is corrupt.
+# Updated in v0.3.0 (bypass-proxy-farm branch) to include:
+#   - cobalt_community (public Cobalt relays, no self-hosting)
+#   - invidious local=true proxy (Invidious streams through its own IP)
+#   - socks5_farm (free SOCKS5 proxy discovery)
+#   - github_actions_farm (remote download on GitHub runners)
 DEFAULT_METHODS = [
     "transcript_probe",
     "ytdlp_default",
@@ -33,12 +38,15 @@ DEFAULT_METHODS = [
     "ytdlp_audio_only",
     "innertube_direct",
     "cobalt",
+    "cobalt_community",       # NEW: public Cobalt relays (proven to bypass datacenter block)
     "piped",
-    "invidious",
+    "invidious",              # UPDATED: now uses local=true proxy bypass
+    "socks5_farm",            # NEW: free SOCKS5 proxy farm
+    "github_actions_farm",    # NEW: remote download via GitHub Actions
 ]
 
 DEMOTION_THRESHOLD = 3      # consecutive failures before demotion
-MAX_RANK = 9                # bottom of the chain
+MAX_RANK = 12                # bottom of the chain (was 9, now 12 for 13 methods)
 MIN_RANK = 0                # top
 
 
