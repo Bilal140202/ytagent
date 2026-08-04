@@ -68,6 +68,12 @@ def _fetch_proxy_list() -> list[str]:
 def _test_proxy(proxy: str, video_id: str) -> tuple[str, bool, str]:
     """Test if a proxy can reach YouTube's player API without LOGIN_REQUIRED.
 
+    Does a TWO-PHASE test:
+      1. Fetch the watch page and check playabilityStatus is OK (not LOGIN_REQUIRED)
+      2. POST to the innertube player API to confirm stream URLs are returned
+
+    Only proxies that pass BOTH phases are considered working.
+
     Returns (proxy, ok, reason).
     """
     import requests
@@ -82,26 +88,79 @@ def _test_proxy(proxy: str, video_id: str) -> tuple[str, bool, str]:
         except (socket.timeout, OSError):
             return (proxy, False, "tcp connect failed")
 
-        # Second: fetch the watch page through the proxy and check playability
         proxies = {"http": f"socks5://{proxy}", "https": f"socks5://{proxy}"}
+        headers = {
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+        }
+
+        # Phase 1: fetch the watch page and check playability
         r = requests.get(
             f"https://www.youtube.com/watch?v={video_id}",
             proxies=proxies,
             timeout=PROXY_TEST_TIMEOUT,
             verify=False,
-            headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"},
+            headers=headers,
         )
         if r.status_code != 200:
-            return (proxy, False, f"HTTP {r.status_code}")
+            return (proxy, False, f"watch page HTTP {r.status_code}")
 
         body = r.text
         if '"status":"LOGIN_REQUIRED"' in body:
-            return (proxy, False, "LOGIN_REQUIRED")
-        if '"status":"OK"' in body:
-            return (proxy, True, "OK")
+            return (proxy, False, "watch page LOGIN_REQUIRED")
         if '"status":"ERROR"' in body:
-            return (proxy, False, "ERROR")
-        return (proxy, False, "unknown status")
+            return (proxy, False, "watch page ERROR")
+        if '"status":"OK"' not in body:
+            return (proxy, False, "watch page no OK status")
+
+        # Phase 2: POST to the innertube player API to confirm stream URLs
+        # Extract visitor_data from the watch page
+        import re
+        vd_match = re.search(r'"visitorData":"([^"]+)"', body)
+        visitor_data = vd_match.group(1) if vd_match else ""
+
+        player_payload = {
+            "context": {
+                "client": {
+                    "clientName": "ANDROID_VR",
+                    "clientVersion": "1.65.10",
+                    "androidSdkVersion": 32,
+                    "visitorData": visitor_data,
+                }
+            },
+            "videoId": video_id,
+        }
+        player_headers = {
+            "Content-Type": "application/json",
+            "User-Agent": headers["User-Agent"],
+            "X-YouTube-Client-Name": "3",
+            "X-YouTube-Client-Version": "1.65.10",
+        }
+        r2 = requests.post(
+            "https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8",
+            json=player_payload,
+            headers=player_headers,
+            proxies=proxies,
+            timeout=PROXY_TEST_TIMEOUT,
+            verify=False,
+        )
+        if r2.status_code != 200:
+            return (proxy, False, f"player API HTTP {r2.status_code}")
+
+        try:
+            pdata = r2.json()
+        except Exception:
+            return (proxy, False, "player API bad JSON")
+
+        pstatus = pdata.get("playabilityStatus", {}).get("status", "")
+        if pstatus != "OK" and pstatus != "LIVE_STREAM_OFFLINE":
+            return (proxy, False, f"player API status={pstatus}")
+
+        # Check that streamingData is present (has actual stream URLs)
+        if not pdata.get("streamingData"):
+            return (proxy, False, "player API no streamingData")
+
+        return (proxy, True, "OK")
     except Exception as e:
         return (proxy, False, str(e)[:50])
 
