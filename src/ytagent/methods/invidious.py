@@ -9,9 +9,7 @@ The Invidious instance has a residential/non-blocked IP, so it can fetch
 from googlevideo.com. We then download from the Invidious instance, which
 acts as a middleman.
 
-PROVEN to work for the Babymonster video `6ha4zBqRkUE` (Zach Sang Show
-interview, 48 MB, 360p H.264/AAC MP4) — same video that failed on every
-direct method (yt-dlp, innertube direct, BGutil POT, Piped, Cobalt).
+PROVEN to work for the previously-blocked video
 
 Limitation: 360p muxed MP4 only (itag=18). For higher quality, use the
 cobalt_community method which can get 720p.

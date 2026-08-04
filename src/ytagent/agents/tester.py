@@ -18,16 +18,17 @@ from ..state import now_iso
 from .verifier import Verifier
 
 # Known-stable public YouTube videos for end-to-end smoke tests.
-# These are widely-embedded, very stable, public videos.
+# These are widely-embedded, very stable, public videos suitable for testing.
+# Replace with any public video IDs you prefer — these are just defaults.
 CORPUS = [
-    "BaW_jenozKc",   # yt-dlp's own test video
-    "aqz-KE-bpKQ",   # Big Buck Bunny clip
-    "M7lc1UVf-VE",   # YouTube Developers Live
+    "BaW_jenozKc",   # public test video
+    "aqz-KE-bpKQ",   # public animated short
+    "M7lc1UVf-VE",   # public tech talk
 ]
 
 CORPUS_FULL = CORPUS + [
-    "_OBlgSz8sSM",   # Keyboard Cat (public)
-    "9bZkp7q19f0",   # PSY Gangnam Style
+    "_OBlgSz8sSM",   # public viral video
+    "9bZkp7q19f0",   # public music video
 ]
 
 

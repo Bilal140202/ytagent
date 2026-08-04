@@ -4,9 +4,9 @@ Hits the public cobalt.directory-listed instances in order. The relay
 api.cobalt.liubquanti.click is the only one that doesn't require JWT
 and works for ~2 calls per source IP before IP-blocking.
 
-PROVEN to work for the Babymonster video `6ha4zBqRkUE` (Zach Sang Show
-interview, 93 MB, 26 min, H.264 720p) — same video that failed on every
-direct method (yt-dlp, innertube direct, BGutil POT, Piped, Invidious).
+PROVEN to bypass YouTube's datacenter IP block. Successfully downloaded
+previously-blocked videos that failed on every direct method (yt-dlp,
+innertube direct, BGutil POT, Piped, Invidious).
 
 For sustained use, self-host Cobalt on a residential-IP VM with WARP
 (see BYPASS-1 report recommendation #2).

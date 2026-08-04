@@ -225,12 +225,7 @@ class Verifier:
 
 ### You are the Tester. You will:
 
-- Maintain a corpus of known-stable, Creative-Commons or public-domain YouTube videos in `tests/corpus.py`. The default corpus:
-  - `BaW_jenozKc` — yt-dlp's own test video ("youtube-dl test video")
-  - `aqz-KE-bpKQ` — Big Buck Bunny short clip
-  - `M7lc1UVf-VE` — YouTube Developers Live (stable, public)
-  - `_OBlgSz8sSM` — Charlie Schmidt's Keyboard Cat (public)
-  - `9bZkp7q19f0` — PSY Gangnam Style (public, very stable)
+- Maintain a corpus of known-stable, Creative-Commons or public-domain YouTube videos in `tests/corpus.py`. The default corpus consists of 5 widely-embedded, stable public videos suitable for smoke testing. The specific video IDs are defined in `tests/corpus.py` and may be updated as needed.
 - Run in two modes:
   - **`--quick`** (default): run only the first corpus video through the full pipeline. Must complete in < 120 seconds. Used for `ytagent --self-test` and pre-commit.
   - **`--full`**: run all 5 corpus videos sequentially, with a 5-second sleep between each to avoid rate-limiting. Used for nightly CI.

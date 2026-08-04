@@ -148,7 +148,7 @@ The first step was to determine whether the failure was on our end (a bug in the
 
 The watch page itself returned HTTP 200, but the embedded player configuration contained `LOGIN_REQUIRED` — YouTube had decided, based on our IP address alone, that we were a bot and refused to serve video streams.
 
-An IP geolocation check confirmed the root cause: the cloud environment runs on an IP belonging to a datacenter range (Alibaba Cloud, Hong Kong). YouTube maintains reputation scores for IP ranges, and datacenter IPs — especially those from certain providers and regions — are flagged as high-risk for automated abuse.
+An IP geolocation check confirmed the root cause: the cloud environment runs on an IP belonging to a datacenter range. YouTube maintains reputation scores for IP ranges, and datacenter IPs — especially those from certain providers and regions — are flagged as high-risk for automated abuse.
 
 > **Tech in a Minute: What is IP Reputation Scoring?**
 >

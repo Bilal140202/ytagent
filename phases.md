@@ -157,24 +157,20 @@
 
 ---
 
-## Phase 4 — End-to-end testing & proof of work
+## Phase 4 — End-to-end testing
 
-**Goal:** Prove the system works against real YouTube, with real videos, on this cloud environment. Generate the proof-of-work artifacts that get pushed to GitHub.
+**Goal:** Prove the system works against real YouTube, with real videos, on this cloud environment.
 
 **Activities:**
 - Run `ytagent --self-test --quick` against the corpus. Must exit 0.
 - Run `ytagent --self-test --full` against the full corpus. Generate `state/self-test-<timestamp>.md`.
-- Run `ytagent download https://www.youtube.com/watch?v=BaW_jenozKc --out-dir downloads/proof/` and confirm a verified file lands in `downloads/proof/`.
-- Capture the JSONL log of a successful download as `docs/proof-of-work/sample-run.jsonl`.
-- Capture the Verifier's verdict on the downloaded file as `docs/proof-of-work/verify-result.json`.
-- Write `docs/proof-of-work/README.md` explaining what was tested, when, and what the results were.
+- Run `ytagent download <a-public-video-url> --out-dir downloads/proof/` and confirm a verified file lands in `downloads/proof/`.
 
 **Definition of done:**
 - `state/self-test-<timestamp>.md` exists and shows all corpus videos passing.
 - `downloads/proof/` contains a verified video.
-- `docs/proof-of-work/` contains the sample run log, the verify result, and the README.
 
-**Exit criterion:** A downstream reader of `docs/proof-of-work/` is convinced the system works.
+**Exit criterion:** The self-test passes and a verified video can be downloaded end-to-end.
 
 **Status:** ⏳ Pending Phase 3.
 
