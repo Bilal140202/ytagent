@@ -15,9 +15,12 @@ from typing import Any, Callable
 from .base import MethodResult
 from . import (
     cobalt,
+    cobalt_community,
+    github_actions_farm,
     innertube_direct,
     invidious,
     piped,
+    socks5_farm,
     transcript_probe,
     ytdlp_audio_only,
     ytdlp_default,
@@ -45,16 +48,19 @@ def _wrap(mod) -> MethodFn:
 
 
 METHOD_REGISTRY: dict[str, MethodFn] = {
-    transcript_probe.NAME:    _wrap(transcript_probe),
-    ytdlp_default.NAME:       _wrap(ytdlp_default),
-    ytdlp_jsless.NAME:        _wrap(ytdlp_jsless),
-    ytdlp_ios.NAME:           _wrap(ytdlp_ios),
-    ytdlp_single_file.NAME:   _wrap(ytdlp_single_file),
-    ytdlp_audio_only.NAME:    _wrap(ytdlp_audio_only),
-    innertube_direct.NAME:    _wrap(innertube_direct),
-    cobalt.NAME:              _wrap(cobalt),
-    piped.NAME:               _wrap(piped),
-    invidious.NAME:           _wrap(invidious),
+    transcript_probe.NAME:       _wrap(transcript_probe),
+    ytdlp_default.NAME:          _wrap(ytdlp_default),
+    ytdlp_jsless.NAME:           _wrap(ytdlp_jsless),
+    ytdlp_ios.NAME:              _wrap(ytdlp_ios),
+    ytdlp_single_file.NAME:      _wrap(ytdlp_single_file),
+    ytdlp_audio_only.NAME:       _wrap(ytdlp_audio_only),
+    innertube_direct.NAME:       _wrap(innertube_direct),
+    cobalt.NAME:                 _wrap(cobalt),
+    cobalt_community.NAME:       _wrap(cobalt_community),
+    piped.NAME:                  _wrap(piped),
+    invidious.NAME:              _wrap(invidious),
+    socks5_farm.NAME:            _wrap(socks5_farm),
+    github_actions_farm.NAME:    _wrap(github_actions_farm),
 }
 
 

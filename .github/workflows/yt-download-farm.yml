@@ -1,0 +1,127 @@
+# .github/workflows/yt-download-farm.yml
+# Remote download farm for ytagent.
+#
+# Triggered via API from a blocked cloud environment. Runs on GitHub's
+# runners (Azure IPs that YouTube doesn't block), installs Cloudflare WARP
+# for extra safety, downloads the video with yt-dlp, and uploads it as a
+# workflow artifact.
+#
+# Trigger from ytagent:
+#   ytagent download <url> --method github_actions_farm
+#
+# Or trigger manually via API:
+#   curl -X POST \
+#     -H "Authorization: token $GITHUB_TOKEN" \
+#     -H "Accept: application/vnd.github+json" \
+#     https://api.github.com/repos/Bilal140202/ytagent/actions/workflows/yt-download-farm.yml/dispatches \
+#     -d '{"ref":"main","inputs":{"video_url":"https://www.youtube.com/watch?v=VIDEO_ID"}}'
+
+name: YT Download Farm
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_url:
+        description: 'YouTube video URL or ID'
+        required: true
+        type: string
+      video_id:
+        description: 'Video ID (11 chars, optional)'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Parse video ID
+        id: vid
+        run: |
+          URL="${{ github.event.inputs.video_url }}"
+          VID="${{ github.event.inputs.video_id }}"
+          if [ -z "$VID" ]; then
+            VID=$(echo "$URL" | grep -oE '[A-Za-z0-9_-]{11}' | head -1)
+          fi
+          echo "video_id=$VID" >> $GITHUB_OUTPUT
+          echo "Parsed video ID: $VID"
+
+      - name: Install Cloudflare WARP
+        run: |
+          curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
+          sudo apt-get update -qq
+          sudo apt-get install -y cloudflare-warp
+          warp-cli registration new || true
+          warp-cli mode proxy
+          warp-cli connect
+          sleep 3
+          echo "WARP status:"
+          warp-cli status
+          echo "Proxy: http://127.0.0.1:40000"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install yt-dlp + BGutil
+        run: |
+          pip install -U yt-dlp bgutil-ytdlp-pot-provider requests
+
+      - name: Set up BGutil POT provider
+        run: |
+          git clone --depth=1 https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git /tmp/bgutil
+          cd /tmp/bgutil/server
+          npm install --production
+          npm install typescript
+          ./node_modules/.bin/tsc
+          nohup node build/main.js --port 4416 &
+          sleep 5
+          curl -s http://127.0.0.1:4416/ping
+
+      - name: Download video
+        env:
+          YTDLP_PLUGIN_DIRS: /opt/hostedtoolcache/Python/3.12/x64/lib/python3.12/site-packages/yt_dlp_plugins
+        run: |
+          VID="${{ steps.vid.outputs.video_id }}"
+          echo "Downloading video: $VID"
+
+          # Try with WARP proxy + BGutil PO token
+          yt-dlp --no-cache-dir --no-check-certificates \
+            --proxy http://127.0.0.1:40000 \
+            --extractor-args "youtube:player_client=android_vr,web" \
+            -f "best[ext=mp4]/worst[ext=mp4]/worst" \
+            --merge-output-format mp4 \
+            --postprocessor-args "ffmpeg:-movflags +faststart" \
+            -o "video_${VID}.%(ext)s" \
+            "https://www.youtube.com/watch?v=${VID}" \
+            || \
+          # Fallback without WARP
+          yt-dlp --no-cache-dir --no-check-certificates \
+            --extractor-args "youtube:player_client=android_vr,web" \
+            -f "best[ext=mp4]/worst[ext=mp4]/worst" \
+            --merge-output-format mp4 \
+            --postprocessor-args "ffmpeg:-movflags +faststart" \
+            -o "video_${VID}.%(ext)s" \
+            "https://www.youtube.com/watch?v=${VID}"
+
+      - name: Verify video
+        run: |
+          VID="${{ steps.vid.outputs.video_id }}"
+          ls -la video_${VID}.*
+          file video_${VID}.*
+          ffprobe -v error -show_format -show_streams video_${VID}.* 2>&1 | head -20
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: video_${{ steps.vid.outputs.video_id }}
+          path: video_${{ steps.vid.outputs.video_id }}.*
+          retention-days: 7
+          compression-level: 0  # video is already compressed
