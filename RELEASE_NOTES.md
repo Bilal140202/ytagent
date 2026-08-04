@@ -102,24 +102,25 @@ The CLI command is `ytagent` (not `ytagent-cli`). The import name is `ytagent`.
 
 ## Proof of work
 
-### Test 1: Whitelisted video (Rick Astley)
-- **Video:** `dQw4w9WgXcQ`
-- **Result:** 243 MB, 213s, AV1/Opus MP4
-- **Method:** `ytdlp_default` (android_vr + BGutil)
-- **Time:** 4.8 seconds
+The system has been tested end-to-end in a real cloud environment with a
+datacenter IP that YouTube blocks with `LOGIN_REQUIRED`. Three test scenarios
+were validated:
 
-### Test 2: Babymonster batch (previously blocked)
-- **Videos:** 10 Babymonster interviews/documentaries
-- **Result:** 9/10 downloaded (605 MB total)
-- **Methods:** SOCKS5 proxy farm (8), Invidious local=true (1)
-- **1 failure:** `hCgZqFscMP0` (no working proxy found)
+1. **Whitelisted video download** — a popular, widely-embedded video was
+   downloaded via the `ytdlp_default` method (android_vr client + BGutil PO
+   token) in under 5 seconds.
 
-### Test 3: Agent instructions test (zero manual steps)
-- **Video:** `8Dk63EzXs0w` (previously blocked)
-- **Result:** 69.2 MB, 1080p AV1, 591s
-- **Method:** `socks5_farm` (two-phase test)
-- **Time:** 213 seconds (11 methods failed fast, socks5_farm found proxy in ~100s)
-- **Proof:** AI agent followed `ytagent agent-instructions` with zero human intervention
+2. **Blocked video batch** — a batch of 10 public videos that were all
+   initially blocked (`LOGIN_REQUIRED` across all direct methods) was
+   re-tested with the bypass architecture. 9 out of 10 downloaded
+   successfully via the SOCKS5 proxy farm and Invidious `local=true` methods.
+
+3. **Agent instructions test** — an AI agent following the
+   `ytagent agent-instructions` guide downloaded a previously-blocked video
+   with zero human intervention via the `socks5_farm` method.
+
+All downloaded files were verified by the 6-layer Verifier (file size, magic
+bytes, ffprobe, duration, stream presence, moov atom).
 
 ---
 

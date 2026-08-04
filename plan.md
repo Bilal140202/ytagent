@@ -100,15 +100,11 @@
 - [ ] `ytagent download <real-public-url>` succeeds end-to-end
 - [ ] Commit Phase 3
 
-## Phase 4 — End-to-end testing & proof of work
+## Phase 4 — End-to-end testing
 
 - [ ] Run `ytagent --self-test --quick` — exit 0
 - [ ] Run `ytagent --self-test --full` — generate `state/self-test-<ts>.md`
-- [ ] Download `BaW_jenozKc` to `downloads/proof/`
-- [ ] Capture `docs/proof-of-work/sample-run.jsonl`
-- [ ] Capture `docs/proof-of-work/verify-result.json`
-- [ ] Write `docs/proof-of-work/README.md`
-- [ ] Commit proof-of-work
+- [ ] Download a public video to `downloads/proof/` and verify it passes the Verifier
 
 ## Phase 5 — Sidecars (escape hatches, parallel to Phase 4)
 

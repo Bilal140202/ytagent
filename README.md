@@ -20,7 +20,7 @@
 pip install ytagent-cli
 
 # Download any public YouTube video
-ytagent download "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+ytagent download "https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
 ```
 
 That's it. The first download auto-bootstraps the BGutil POT provider (one-time ~15-second setup that bypasses YouTube's datacenter-IP blocks). The verified video lands at `downloads/<video_id>.mp4`.
@@ -165,8 +165,8 @@ Returns clean JSON on stdout (all logs go to stderr):
 ```json
 {
   "ok": true,
-  "video_id": "dQw4w9WgXcQ",
-  "final_path": "downloads/dQw4w9WgXcQ.mp4",
+  "video_id": "YOUR_VIDEO_ID",
+  "final_path": "downloads/YOUR_VIDEO_ID.mp4",
   "method_used": "ytdlp_default",
   "total_duration_ms": 5432,
   "attempts": [
@@ -203,27 +203,25 @@ Triggers a GitHub Actions workflow that runs on GitHub's Azure runners (resident
 
 ## Proof of work
 
-### Test 1: Rick Astley (whitelisted video)
-- **Video:** `dQw4w9WgXcQ` (Never Gonna Give You Up)
-- **Result:** 243 MB, 213-second, AV1/Opus MP4
-- **Method:** `ytdlp_default` (android_vr + BGutil PO token)
-- **Time:** 4.8 seconds
-- **Environment:** Alibaba HK datacenter IP (47.57.232.232)
+The system has been tested end-to-end in a real cloud environment with a
+datacenter IP that YouTube blocks with `LOGIN_REQUIRED`. The testing covered
+three scenarios:
 
-### Test 2: Babymonster batch (9/10 previously-blocked videos)
-- **Videos:** 10 Babymonster interviews/documentaries
-- **Result:** 9 out of 10 downloaded successfully (605 MB total)
-- **Methods:** SOCKS5 proxy farm (8 videos), Invidious local=true (1 video)
-- **Proof:** All videos verified by ffprobe — valid MP4 files with correct duration and codecs
+1. **Whitelisted video download** — a popular, widely-embedded video was
+   downloaded successfully via the `ytdlp_default` method (android_vr client +
+   BGutil PO token) in under 5 seconds.
 
-### Test 3: Agent instructions test (zero manual steps)
-- **Video:** `8Dk63EzXs0w` (YG Production EP.5, previously blocked)
-- **Result:** 69.2 MB, 1080p AV1, 591 seconds
-- **Method:** `socks5_farm` (two-phase proxy test)
-- **Time:** 213 seconds (11 direct methods failed fast, socks5_farm found a proxy in ~100s)
-- **Proof:** An AI agent following `ytagent agent-instructions` downloaded the video with zero human intervention
+2. **Blocked video batch** — a batch of 10 public videos that were all
+   initially blocked (`LOGIN_REQUIRED` across all direct methods) was
+   re-tested with the bypass architecture. 9 out of 10 downloaded
+   successfully via the SOCKS5 proxy farm and Invidious `local=true` methods.
 
-See [`docs/proof-of-work/`](docs/proof-of-work/) for artifacts and [`docs/test-results/`](docs/test-results/) for batch test reports.
+3. **Agent instructions test** — an AI agent following the `ytagent
+   agent-instructions` guide downloaded a previously-blocked video with zero
+   human intervention via the `socks5_farm` method.
+
+All downloaded files were verified by the 6-layer Verifier (file size, magic
+bytes, ffprobe, duration, stream presence, moov atom).
 
 ---
 
@@ -311,8 +309,7 @@ else:
 | [`phases.md`](phases.md) | 6-phase build plan |
 | [`plan.md`](plan.md) | Checkable master plan with risk register |
 | [`skills.md`](skills.md) | Skill-based prompting reference |
-| [`docs/proof-of-work/`](docs/proof-of-work/) | Artifacts from a real end-to-end download |
-| [`docs/test-results/`](docs/test-results/) | Babymonster batch test reports |
+| [`docs/research-blog.md`](docs/research-blog.md) | In-depth research document on the architecture and findings |
 | [`.github/workflows/yt-download-farm.yml`](.github/workflows/yt-download-farm.yml) | GitHub Actions remote download worker |
 
 ---
