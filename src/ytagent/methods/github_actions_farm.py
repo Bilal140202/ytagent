@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import time
 import zipfile
 from pathlib import Path
@@ -213,11 +214,11 @@ def download(
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    token = opts.get("github_token") or ""
+    token = opts.get("github_token") or os.environ.get("YTAGENT_GITHUB_TOKEN") or ""
     if not token:
         return MethodResult(
             ok=False,
-            reason="github_actions_farm: no github_token in opts",
+            reason="github_actions_farm: no github_token in opts and no YTAGENT_GITHUB_TOKEN env var",
             duration_ms=int((time.monotonic() - started) * 1000),
         )
 
