@@ -127,6 +127,9 @@ ytagent setup --stop         # stop the auto-started BGutil server
 ytagent truth show
 ytagent truth reset [--method NAME]
 
+# Build subtitles (SRT) for a video — no video download needed
+ytagent subtitles <url-or-id> [--to en] [--from ko] [--out FILE] [--subs-file names.json] [--json]
+
 # List all 13 download methods
 ytagent list-methods
 
@@ -178,6 +181,21 @@ Returns clean JSON on stdout (all logs go to stderr):
 ```
 
 ---
+
+## Subtitles without downloading
+
+`ytagent subtitles` builds an SRT from a video's caption tracks via the raw
+Innertube player (iOS client first — it answers from datacenter IPs where
+yt-dlp is bot-walled). It fetches the **source-language** track as json3
+(YouTube's `tlang` translation is rate-limited from those IPs), translates
+locally in sentinel-joined batches, and can protect names/terms with a
+`--subs-file` substitution map applied *before* translation. When a download
+method gets a playable player response but can't fetch the media bytes, it
+now reports the metadata + caption tracks as `extra["salvage"]` instead of a
+bare failure. Full field notes: [docs/subtitles-and-datacenter-playbook.md](docs/subtitles-and-datacenter-playbook.md).
+
+The GitHub Actions farm (Tier 12) accepts its token from opts **or** the
+`YTAGENT_GITHUB_TOKEN` environment variable.
 
 ## How the bypass works (datacenter IP block defeat)
 

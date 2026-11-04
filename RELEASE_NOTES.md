@@ -1,3 +1,58 @@
+# Release Notes — ytagent v0.4.0
+
+**Release date:** 2026-11-04
+**PyPI package:** `ytagent-cli` v0.4.0
+
+---
+
+## What's new in v0.4.0
+
+Born from a real datacenter run where every download route failed but the
+subtitles still shipped (full write-up:
+`docs/subtitles-and-datacenter-playbook.md`).
+
+### 1. `ytagent subtitles` command + `ytagent/captions.py`
+
+Build an SRT for any captioned video without downloading the video:
+
+```bash
+ytagent subtitles <url-or-id> --to en [--from ko] [--out FILE] [--subs-file names.json] [--json]
+```
+
+Pipeline: Innertube player (new shared `ytagent/innertube.py`, iOS client
+first) → source-language caption track as json3 → line segmentation
+(sentence breaks, 7 s / 62-char caps) → local translation in
+sentinel-joined batches via the gtx endpoint (YouTube's `tlang` is
+rate-limited from datacenter IPs; the source track is not) → SRT with
+wrapped, non-overlapping cues. `--subs-file` takes a JSON map of
+source→canonical name/term substitutions applied **before** translation,
+so translators and ASR mishearings can't mangle proper nouns.
+
+### 2. `innertube_direct` salvage reporting
+
+When a client gets a playable player response but the media can't be
+fetched (e.g. signed googlevideo URLs 403 after their egress-IP-bound
+redirect), the method's failure result now carries
+`extra["salvage"]` = `{client, title, length_seconds, caption_tracks}`
+instead of a bare failure. Player payloads now also send
+`racyCheckOk`/`contentCheckOk`.
+
+### 3. GitHub Actions farm token from environment
+
+`github_actions_farm` now falls back to the `YTAGENT_GITHUB_TOKEN`
+environment variable when `github_token` is not in opts (previously it
+failed in 0 ms with "no github_token in opts" even when a token was
+available on the machine).
+
+### 4. Tests
+
+First unit-test suite (`tests/`): Innertube response parsing, caption
+json3 parsing, segmentation caps, substitution ordering, sentinel-batch
+translation (incl. mismatch fallback), SRT rendering/overlap clamping,
+and the `subtitles` CLI end-to-end with network mocked out.
+
+---
+
 # Release Notes — ytagent v0.3.0
 
 **Release date:** 2026-08-04

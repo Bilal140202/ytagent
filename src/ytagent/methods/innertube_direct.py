@@ -71,6 +71,8 @@ def _try_client(client_key: str, video_id: str, out_dir: Path, session, proxy: s
     payload = {
         "context": client_cfg["context"],
         "videoId": video_id,
+        "racyCheckOk": True,
+        "contentCheckOk": True,
     }
 
     headers = {
@@ -123,6 +125,30 @@ def _try_client(client_key: str, video_id: str, out_dir: Path, session, proxy: s
             duration_ms=int((time.monotonic() - started) * 1000),
         )
 
+    # Playability is OK: even if the media bytes turn out to be unreachable
+    # (signed googlevideo URLs are egress-IP-bound across their redirect),
+    # the metadata + caption tracks are a valuable partial success. Attach
+    # them to every failure result from here on as `extra["salvage"]` so
+    # callers (and the subtitles pipeline) can still use them.
+    salvage = {
+        "client": client_key,
+        "title": data.get("videoDetails", {}).get("title", ""),
+        "length_seconds": data.get("videoDetails", {}).get("lengthSeconds", ""),
+        "caption_tracks": [
+            {
+                "language_code": t.get("languageCode", ""),
+                "kind": t.get("kind", ""),
+                "base_url": t.get("baseUrl", ""),
+            }
+            for t in (
+                data.get("captions", {})
+                .get("playerCaptionsTracklistRenderer", {})
+                .get("captionTracks", [])
+                or []
+            )
+        ],
+    }
+
     streaming = data.get("streamingData", {})
     formats = streaming.get("formats", []) or []
     adaptive = streaming.get("adaptiveFormats", []) or []
@@ -150,6 +176,7 @@ def _try_client(client_key: str, video_id: str, out_dir: Path, session, proxy: s
             ok=False,
             reason=f"innertube_direct/{client_key}: no mp4 streams in response",
             duration_ms=int((time.monotonic() - started) * 1000),
+            extra={"salvage": salvage},
         )
 
     # Pick highest bitrate.
@@ -161,6 +188,7 @@ def _try_client(client_key: str, video_id: str, out_dir: Path, session, proxy: s
             ok=False,
             reason=f"innertube_direct/{client_key}: stream URL missing (likely needs signature deciphering)",
             duration_ms=int((time.monotonic() - started) * 1000),
+            extra={"salvage": salvage},
         )
 
     # Download the stream URL with requests streaming.
@@ -172,6 +200,7 @@ def _try_client(client_key: str, video_id: str, out_dir: Path, session, proxy: s
             ok=False,
             reason=f"innertube_direct/{client_key}: stream download produced 0 bytes",
             duration_ms=int((time.monotonic() - started) * 1000),
+            extra={"salvage": salvage},
         )
 
     return MethodResult(
@@ -227,11 +256,14 @@ def download(
     proxy = opts.get("proxy")
 
     # Try TVHTML5 first (research says it's PO-token-light).
+    last_salvage: dict[str, Any] | None = None
     for client_key in ("tvhtml5", "android", "ios"):
         result = _try_client(client_key, video_id, out_dir, session, proxy)
         if result.ok:
             result.duration_ms = int((time.monotonic() - started) * 1000)
             return result
+        if result.extra.get("salvage"):
+            last_salvage = result.extra["salvage"]
         log.debug("innertube_direct sub-method failed",
                   client=client_key, reason=result.reason)
 
@@ -239,4 +271,5 @@ def download(
         ok=False,
         reason="innertube_direct: all clients failed",
         duration_ms=int((time.monotonic() - started) * 1000),
+        extra={"salvage": last_salvage} if last_salvage else {},
     )

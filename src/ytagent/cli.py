@@ -498,6 +498,77 @@ def _build_agent_instructions() -> list[dict]:
     ]
 
 
+@cli.command(name="subtitles")
+@click.argument("target")
+@click.option("--to", "target_lang", default="en", help="Target subtitle language (e.g. en).")
+@click.option("--from", "source_lang", default=None,
+              help="Source caption language (default: first available track).")
+@click.option("--out", "out_path", default=None,
+              help="Output .srt path (default: ./<video_id>.<lang>.srt).")
+@click.option("--subs-file", default=None,
+              help="JSON file with source->canonical name/term substitutions applied before translation.")
+@click.option("--json", "as_json", is_flag=True, help="Print result summary as JSON.")
+def subtitles_cmd(target: str, target_lang: str, source_lang: str | None,
+                  out_path: str | None, subs_file: str | None, as_json: bool) -> None:
+    """Build an SRT subtitle file for a video — no video download needed.
+
+    Uses the Innertube player (iOS client first) to get caption tracks,
+    fetches the source-language track as json3 (YouTube's own tlang
+    translation is rate-limited from datacenter IPs, so translation is
+    done locally via the gtx endpoint when --to differs from the source).
+    See docs/subtitles-and-datacenter-playbook.md.
+    """
+    import json as _json
+
+    from .captions import build_subtitles
+    from .innertube import fetch_player
+    from .utils.ids import to_video_id
+
+    try:
+        video_id = to_video_id(target)
+    except ValueError as exc:
+        click.echo(f"FAIL  {exc}")
+        sys.exit(2)
+    info = fetch_player(video_id)
+    if not info.ok:
+        click.echo(f"FAIL  player not playable: {info.playability_status} {info.playability_reason}")
+        sys.exit(1)
+    if not info.caption_tracks:
+        click.echo("FAIL  no caption tracks on this video")
+        sys.exit(1)
+
+    substitutions = None
+    if subs_file:
+        substitutions = _json.loads(Path(subs_file).read_text(encoding="utf-8"))
+
+    result = build_subtitles(
+        info,
+        target_lang=target_lang,
+        source_lang=source_lang,
+        substitutions=substitutions,
+    )
+    dest = Path(out_path) if out_path else Path(f"{video_id}.{target_lang}.srt")
+    dest.write_text(result.srt, encoding="utf-8")
+
+    if as_json:
+        click.echo(_json.dumps({
+            "video_id": result.video_id,
+            "title": result.title,
+            "source_lang": result.source_lang,
+            "target_lang": result.target_lang,
+            "caption_kind": result.caption_kind,
+            "translated": result.translated,
+            "cues": result.cue_count,
+            "path": str(dest),
+            "notes": result.notes,
+        }, indent=2, ensure_ascii=False))
+    else:
+        click.echo(f"\nOK  video_id={result.video_id}")
+        click.echo(f"    title={result.title}")
+        click.echo(f"    {result.source_lang} -> {result.target_lang}  cues={result.cue_count}")
+        click.echo(f"    path={dest}")
+
+
 def main() -> None:
     """Entry point for the `ytagent` console script."""
     cli()
