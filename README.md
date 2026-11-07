@@ -366,3 +366,11 @@ MIT. See [`LICENSE`](LICENSE).
 - **GitHub:** https://github.com/Bilal140202/ytagent
 - **Issues:** https://github.com/Bilal140202/ytagent/issues
 - **Releases:** https://github.com/Bilal140202/ytagent/releases
+
+---
+
+## Project status
+
+**Completed project** — verified in the portfolio audit of **7 November 2026** (README, codebase and project state reviewed).
+
+_Last verified: 7 November 2026_
